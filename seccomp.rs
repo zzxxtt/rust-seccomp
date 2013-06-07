@@ -78,13 +78,16 @@ impl Drop for Filter {
 }
 
 fn main() {
-    let filter = Filter::new(ACT_TRAP);
-    filter.rule_add(ACT_ALLOW, 0); // read
-    filter.rule_add(ACT_ALLOW, 2); // open
-    filter.rule_add(ACT_ALLOW, 3); // close
-    filter.rule_add(ACT_ALLOW, 11); // munmap
-    filter.rule_add(ACT_ALLOW, 28); // madvise
-    filter.rule_add(ACT_ALLOW, 60); // exit
-    filter.rule_add(ACT_ALLOW, 202); // futex
-    filter.load();
+    do std::task::spawn_sched(std::task::PlatformThread) {
+        let filter = Filter::new(ACT_TRAP);
+        filter.rule_add(ACT_ALLOW, 0); // read
+        filter.rule_add(ACT_ALLOW, 2); // open
+        filter.rule_add(ACT_ALLOW, 3); // close
+        filter.rule_add(ACT_ALLOW, 11); // munmap
+        filter.rule_add(ACT_ALLOW, 28); // madvise
+        filter.rule_add(ACT_ALLOW, 60); // exit
+        filter.rule_add(ACT_ALLOW, 202); // futex
+        filter.rule_add(ACT_ALLOW, 231); // exit_group
+        filter.load();
+    }
 }
