@@ -1,4 +1,4 @@
-use std::libc::{c_int, c_uint};
+use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
 
@@ -10,6 +10,15 @@ extern {
     fn seccomp_load(ctx: *mut scmp_filter_ctx) -> c_int;
     fn seccomp_rule_add(ctx: *mut scmp_filter_ctx, action: u32, syscall: c_int,
                         zero: c_uint) -> c_int;
+    fn seccomp_syscall_resolve_name(name: *c_char) -> c_int;
+}
+
+pub fn syscall_resolve_name(name: &str) -> c_int {
+    unsafe {
+        do name.as_c_str |s| {
+            seccomp_syscall_resolve_name(s)
+        }
+    }
 }
 
 /// Default action to take when the ruleset is violated
