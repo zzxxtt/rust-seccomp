@@ -22,30 +22,30 @@ pub fn syscall_resolve_name(name: &str) -> c_int {
 }
 
 /// Default action to take when the ruleset is violated
-struct Action {
+pub struct Action {
     priv flag: u32
 }
 
 /// Kill the process
-static ACT_KILL: Action = Action{flag: 0x00000000};
+pub static ACT_KILL: Action = Action{flag: 0x00000000};
 
 /// Throw a SIGSYS signal
-static ACT_TRAP: Action = Action{flag: 0x00030000};
+pub static ACT_TRAP: Action = Action{flag: 0x00030000};
 
 /// Allow the system call to be executed
-static ACT_ALLOW: Action = Action{flag: 0x7fff0000};
+pub static ACT_ALLOW: Action = Action{flag: 0x7fff0000};
 
 /// Notify a tracing process with the specified value
-fn act_trace(msg_num: u16) -> Action {
+pub fn act_trace(msg_num: u16) -> Action {
     Action{flag: 0x7ff00000 | (msg_num as u32 & 0x0000ffff)}
 }
 
 /// Return the specified error code
-fn act_errno(errno: u16) -> Action {
+pub fn act_errno(errno: u16) -> Action {
     Action{flag: 0x00050000 | (errno as u32 & 0x0000ffff) }
 }
 
-struct Filter {
+pub struct Filter {
     priv ctx: *mut scmp_filter_ctx
 }
 
