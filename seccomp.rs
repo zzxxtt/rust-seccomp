@@ -1,6 +1,15 @@
 use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
+type scmp_compare = c_int; // XXX: enum
+type scmp_datum_t = u64;
+
+struct scmp_arg_cmp {
+    arg: c_uint,
+    op: scmp_compare,
+    datum_a: scmp_datum_t,
+    datum_b: scmp_datum_t
+}
 
 #[link_args = "-lseccomp"]
 extern {
