@@ -88,7 +88,7 @@ impl Filter {
 }
 
 impl Drop for Filter {
-    fn finalize(&self) {
+    fn drop(&self) {
         unsafe {
             seccomp_release(self.ctx)
         }
