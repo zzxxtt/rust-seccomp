@@ -1,29 +1,40 @@
 #[allow(cstack)];
 
+use std;
 use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
 
 #[repr(C)]
-enum scmp_compare {
-    _SCMP_CMP_MIN = 0,
-    SCMP_CMP_NE = 1,
-    SCMP_CMP_LT = 2,
-    SCMP_CMP_LE = 3,
-    SCMP_CMP_EQ = 4,
-    SCMP_CMP_GE = 5,
-    SCMP_CMP_GT = 6,
-    SCMP_CMP_MASKED_EQ = 7,
-    _SCMP_CMP_MAX,
+pub enum Op {
+    priv _SCMP_CMP_MIN = 0,
+    OpNe = 1,
+    OpLt = 2,
+    OpLe = 3,
+    OpEq = 4,
+    OpGe = 5,
+    OpGt = 6,
+    priv SCMP_CMP_MASKED_EQ = 7,
+    priv _SCMP_CMP_MAX,
 }
 
 type scmp_datum_t = u64;
 
-struct scmp_arg_cmp {
-    arg: c_uint,
-    op: scmp_compare,
-    datum_a: scmp_datum_t,
-    datum_b: scmp_datum_t
+pub struct Compare {
+    priv arg: c_uint,
+    priv op: Op,
+    priv datum_a: scmp_datum_t,
+    priv datum_b: scmp_datum_t
+}
+
+impl Compare {
+    pub fn new(arg: c_uint, op: Op, x: u64) -> Compare {
+        Compare { arg: arg, op: op, datum_a: x, datum_b: 0 }
+    }
+
+    pub fn new_masked_eq(arg: c_uint, mask: u64, x: u64) -> Compare {
+        Compare { arg: arg, op: SCMP_CMP_MASKED_EQ, datum_a: mask, datum_b: x }
+    }
 }
 
 #[link_args = "-lseccomp"]
@@ -33,7 +44,7 @@ extern {
     fn seccomp_release(ctx: *mut scmp_filter_ctx);
     fn seccomp_load(ctx: *mut scmp_filter_ctx) -> c_int;
     fn seccomp_rule_add_array(ctx: *mut scmp_filter_ctx, action: u32, syscall: c_int,
-                              arg_cnt: c_uint, arg_array: *scmp_arg_cmp) -> c_int;
+                              arg_cnt: c_uint, arg_array: *Compare) -> c_int;
     fn seccomp_syscall_resolve_name(name: *c_char) -> c_int;
 }
 
@@ -95,7 +106,7 @@ impl Filter {
         }
     }
 
-    pub fn rule_add(&self, action: Action, syscall: c_int, args: &[scmp_arg_cmp]) {
+    pub fn rule_add(&self, action: Action, syscall: c_int, args: &[Compare]) {
         let len = args.len() as c_uint;
         assert!(len as uint == args.len()); // overflow check
         let ptr = std::vec::raw::to_ptr(args);
@@ -111,20 +122,4 @@ impl Drop for Filter {
             seccomp_release(self.ctx)
         }
     }
-}
-
-#[start]
-fn start(_argc: int, _argv: **u8) -> int {
-    use std::libc::{c_void, size_t};
-
-    let filter = Filter::new(ACT_TRAP);
-    let stdout = scmp_arg_cmp { arg: 0, op: SCMP_CMP_EQ, datum_a: 1, datum_b: 0 };
-    filter.rule_add(ACT_ALLOW, 1, [stdout]); // write(1, x)
-    filter.rule_add(ACT_ALLOW, 231, []); // exit_group(x)
-    filter.load();
-
-    let s = bytes!("foobar\n");
-    unsafe { std::libc::write(1, std::vec::raw::to_ptr(s) as *c_void, s.len() as size_t); }
-
-    0
 }
