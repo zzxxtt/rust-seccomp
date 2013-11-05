@@ -3,7 +3,20 @@
 use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
-type scmp_compare = c_int; // XXX: enum
+
+#[repr(C)]
+enum scmp_compare {
+    _SCMP_CMP_MIN = 0,
+    SCMP_CMP_NE = 1,
+    SCMP_CMP_LT = 2,
+    SCMP_CMP_LE = 3,
+    SCMP_CMP_EQ = 4,
+    SCMP_CMP_GE = 5,
+    SCMP_CMP_GT = 6,
+    SCMP_CMP_MASKED_EQ = 7,
+    _SCMP_CMP_MAX,
+}
+
 type scmp_datum_t = u64;
 
 struct scmp_arg_cmp {
@@ -19,8 +32,8 @@ extern {
     fn seccomp_reset(ctx: *mut scmp_filter_ctx, def_action: u32) -> c_int;
     fn seccomp_release(ctx: *mut scmp_filter_ctx);
     fn seccomp_load(ctx: *mut scmp_filter_ctx) -> c_int;
-    fn seccomp_rule_add(ctx: *mut scmp_filter_ctx, action: u32, syscall: c_int,
-                        zero: c_uint) -> c_int;
+    fn seccomp_rule_add_array(ctx: *mut scmp_filter_ctx, action: u32, syscall: c_int,
+                              arg_cnt: c_uint, arg_array: *scmp_arg_cmp) -> c_int;
     fn seccomp_syscall_resolve_name(name: *c_char) -> c_int;
 }
 
@@ -82,9 +95,12 @@ impl Filter {
         }
     }
 
-    pub fn rule_add(&self, action: Action, syscall: c_int) {
+    pub fn rule_add(&self, action: Action, syscall: c_int, args: &[scmp_arg_cmp]) {
+        let len = args.len() as c_uint;
+        assert!(len as uint == args.len()); // overflow check
+        let ptr = std::vec::raw::to_ptr(args);
         unsafe {
-            assert!(seccomp_rule_add(self.ctx, action.flag, syscall, 0) == 0);
+            assert!(seccomp_rule_add_array(self.ctx, action.flag, syscall, len, ptr) == 0);
         }
     }
 }
@@ -102,8 +118,9 @@ fn start(_argc: int, _argv: **u8) -> int {
     use std::libc::{c_void, size_t};
 
     let filter = Filter::new(ACT_TRAP);
-    filter.rule_add(ACT_ALLOW, 1); // write
-    filter.rule_add(ACT_ALLOW, 231); // exit_group
+    let stdout = scmp_arg_cmp { arg: 0, op: SCMP_CMP_EQ, datum_a: 1, datum_b: 0 };
+    filter.rule_add(ACT_ALLOW, 1, [stdout]); // write(1, x)
+    filter.rule_add(ACT_ALLOW, 231, []); // exit_group(x)
     filter.load();
 
     let s = bytes!("foobar\n");
