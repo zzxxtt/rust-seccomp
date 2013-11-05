@@ -5,6 +5,8 @@ use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
 
+static __NR_SCMP_ERROR: c_int = -1;
+
 #[repr(C)]
 pub enum Op {
     priv _SCMP_CMP_MIN = 0,
@@ -48,10 +50,15 @@ extern {
     fn seccomp_syscall_resolve_name(name: *c_char) -> c_int;
 }
 
-pub fn syscall_resolve_name(name: &str) -> c_int {
+pub fn syscall_resolve_name(name: &str) -> Option<c_int> {
     unsafe {
         do name.with_c_str |s| {
-            seccomp_syscall_resolve_name(s)
+            let r = seccomp_syscall_resolve_name(s);
+            if r == __NR_SCMP_ERROR {
+                None
+            } else {
+                Some(r)
+            }
         }
     }
 }
