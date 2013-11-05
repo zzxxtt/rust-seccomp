@@ -1,3 +1,5 @@
+#[allow(cstack)];
+
 use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
@@ -24,7 +26,7 @@ extern {
 
 pub fn syscall_resolve_name(name: &str) -> c_int {
     unsafe {
-        do name.as_c_str |s| {
+        do name.with_c_str |s| {
             seccomp_syscall_resolve_name(s)
         }
     }
@@ -88,7 +90,7 @@ impl Filter {
 }
 
 impl Drop for Filter {
-    fn drop(&self) {
+    fn drop(&mut self) {
         unsafe {
             seccomp_release(self.ctx)
         }
@@ -96,7 +98,7 @@ impl Drop for Filter {
 }
 
 #[start]
-fn start(_argc: int, _argv: **u8, _crate_map: *u8) -> int {
+fn start(_argc: int, _argv: **u8) -> int {
     use std::libc::{c_void, size_t};
 
     let filter = Filter::new(ACT_TRAP);
