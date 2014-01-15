@@ -1,8 +1,6 @@
-#[allow(cstack)];
+extern mod seccomp;
 
 use seccomp::{Filter, Compare, ACT_TRAP, ACT_ALLOW, OpEq};
-
-mod seccomp;
 
 #[start]
 fn start(_argc: int, _argv: **u8) -> int {
@@ -20,6 +18,6 @@ fn start(_argc: int, _argv: **u8) -> int {
     filter.load();
 
     let s = bytes!("foobar\n");
-    unsafe { std::libc::write(1, std::vec::raw::to_ptr(s) as *c_void, s.len() as size_t); }
+    unsafe { std::libc::write(1, s.as_ptr() as *c_void, s.len() as size_t); }
     unsafe { std::libc::exit(0) }
 }

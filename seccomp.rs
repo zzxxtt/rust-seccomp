@@ -1,6 +1,6 @@
-#[allow(cstack)];
+#[crate_id = "seccomp"];
+#[crate_type = "lib"];
 
-use std;
 use std::libc::{c_char, c_int, c_uint};
 
 enum scmp_filter_ctx {}
@@ -39,7 +39,7 @@ impl Compare {
     }
 }
 
-#[link_args = "-lseccomp"]
+#[link(name = "seccomp")]
 extern {
     fn seccomp_init(def_action: u32) -> *mut scmp_filter_ctx;
     fn seccomp_reset(ctx: *mut scmp_filter_ctx, def_action: u32) -> c_int;
@@ -52,14 +52,14 @@ extern {
 
 pub fn syscall_resolve_name(name: &str) -> Option<c_int> {
     unsafe {
-        do name.with_c_str |s| {
+        name.with_c_str(|s| {
             let r = seccomp_syscall_resolve_name(s);
             if r == __NR_SCMP_ERROR {
                 None
             } else {
                 Some(r)
             }
-        }
+        })
     }
 }
 
@@ -116,7 +116,7 @@ impl Filter {
     pub fn rule_add(&self, action: Action, syscall: c_int, args: &[Compare]) {
         let len = args.len() as c_uint;
         assert!(len as uint == args.len()); // overflow check
-        let ptr = std::vec::raw::to_ptr(args);
+        let ptr = args.as_ptr();
         unsafe {
             assert!(seccomp_rule_add_array(self.ctx, action.flag, syscall, len, ptr) == 0);
         }
