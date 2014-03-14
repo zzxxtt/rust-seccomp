@@ -1,5 +1,6 @@
 #[crate_id = "seccomp"];
 #[crate_type = "lib"];
+#[allow(non_camel_case_types)]; // C definitions
 
 use std::libc::{c_char, c_int, c_uint};
 

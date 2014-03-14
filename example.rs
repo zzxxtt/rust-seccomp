@@ -1,4 +1,4 @@
-extern mod seccomp;
+extern crate seccomp;
 
 use seccomp::{Filter, Compare, ACT_TRAP, ACT_ALLOW, OpEq};
 
