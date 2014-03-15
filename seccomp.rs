@@ -4,6 +4,14 @@
 
 use std::libc::{c_char, c_int, c_uint};
 
+#[cfg(target_arch = "x86_64")]
+#[path = "syscall64.rs"]
+pub mod syscall;
+
+#[cfg(target_arch = "x86")]
+#[path = "syscall32.rs"]
+pub mod syscall;
+
 enum scmp_filter_ctx {}
 
 static __NR_SCMP_ERROR: c_int = -1;

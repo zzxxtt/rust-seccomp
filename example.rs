@@ -1,6 +1,6 @@
 extern crate seccomp;
 
-use seccomp::{Filter, Compare, ACT_TRAP, ACT_ALLOW, OpEq};
+use seccomp::{Filter, Compare, ACT_TRAP, ACT_ALLOW, OpEq, syscall};
 
 #[start]
 fn start(_argc: int, _argv: **u8) -> int {
@@ -10,10 +10,10 @@ fn start(_argc: int, _argv: **u8) -> int {
 
     // write(1, x, y)
     let stdout = Compare::new(0, OpEq, 1);
-    filter.rule_add(ACT_ALLOW, 1, [stdout]);
+    filter.rule_add(ACT_ALLOW, syscall::WRITE, [stdout]);
 
     // exit_group(x)
-    filter.rule_add(ACT_ALLOW, 231, []);
+    filter.rule_add(ACT_ALLOW, syscall::EXIT_GROUP, []);
 
     filter.load();
 
