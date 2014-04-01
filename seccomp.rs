@@ -1,6 +1,6 @@
-#[crate_id = "seccomp"];
-#[crate_type = "lib"];
-#[allow(non_camel_case_types)]; // C definitions
+#![crate_id = "seccomp"]
+#![crate_type = "lib"]
+#![allow(non_camel_case_types)] // C definitions
 
 use std::libc::{c_char, c_int, c_uint};
 
@@ -32,10 +32,10 @@ pub enum Op {
 type scmp_datum_t = u64;
 
 pub struct Compare {
-    priv arg: c_uint,
-    priv op: Op,
-    priv datum_a: scmp_datum_t,
-    priv datum_b: scmp_datum_t
+    arg: c_uint,
+    op: Op,
+    datum_a: scmp_datum_t,
+    datum_b: scmp_datum_t
 }
 
 impl Compare {
@@ -74,7 +74,7 @@ pub fn syscall_resolve_name(name: &str) -> Option<c_int> {
 
 /// Default action to take when the ruleset is violated
 pub struct Action {
-    priv flag: u32
+    flag: u32
 }
 
 /// Kill the process
@@ -97,7 +97,7 @@ pub fn act_errno(errno: u16) -> Action {
 }
 
 pub struct Filter {
-    priv ctx: *mut scmp_filter_ctx
+    ctx: *mut scmp_filter_ctx
 }
 
 impl Filter {
