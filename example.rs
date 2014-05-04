@@ -1,10 +1,11 @@
+extern crate libc;
 extern crate seccomp;
 
 use seccomp::{Filter, Compare, ACT_KILL, ACT_ALLOW, OpEq, syscall};
 
 #[start]
 fn start(_argc: int, _argv: **u8) -> int {
-    use std::libc::{c_void, size_t};
+    use libc::{c_void, size_t};
 
     let outstr = bytes!("output for stdout\n");
     let errstr = bytes!("output for stderr\n");
@@ -33,8 +34,8 @@ fn start(_argc: int, _argv: **u8) -> int {
     filter.load();
 
     unsafe {
-        std::libc::write(1, outstr.as_ptr() as *c_void, outstr.len() as size_t);
-        std::libc::write(2, errstr.as_ptr() as *c_void, errstr.len() as size_t);
-        std::libc::exit(0)
+        libc::write(1, outstr.as_ptr() as *c_void, outstr.len() as size_t);
+        libc::write(2, errstr.as_ptr() as *c_void, errstr.len() as size_t);
+        libc::exit(0)
     }
 }

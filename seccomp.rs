@@ -2,7 +2,10 @@
 #![crate_type = "lib"]
 #![allow(non_camel_case_types)] // C definitions
 
-use std::libc::{c_char, c_int, c_uint};
+extern crate libc;
+
+use libc::{c_char, c_int, c_uint};
+use std::cast::transmute;
 
 #[cfg(target_arch = "x86_64")]
 #[path = "syscall64.rs"]
@@ -17,30 +20,40 @@ enum scmp_filter_ctx {}
 static __NR_SCMP_ERROR: c_int = -1;
 
 #[repr(C)]
+pub enum scmp_compare {
+    _SCMP_CMP_MIN = 0,
+    SCMP_CMP_NE = 1,
+    SCMP_CMP_LT = 2,
+    SCMP_CMP_LE = 3,
+    SCMP_CMP_EQ = 4,
+    SCMP_CMP_GE = 5,
+    SCMP_CMP_GT = 6,
+    SCMP_CMP_MASKED_EQ = 7,
+    _SCMP_CMP_MAX,
+}
+
+#[repr(C)]
 pub enum Op {
-    priv _SCMP_CMP_MIN = 0,
     OpNe = 1,
     OpLt = 2,
     OpLe = 3,
     OpEq = 4,
     OpGe = 5,
     OpGt = 6,
-    priv SCMP_CMP_MASKED_EQ = 7,
-    priv _SCMP_CMP_MAX,
 }
 
 type scmp_datum_t = u64;
 
 pub struct Compare {
     arg: c_uint,
-    op: Op,
+    op: scmp_compare,
     datum_a: scmp_datum_t,
     datum_b: scmp_datum_t
 }
 
 impl Compare {
     pub fn new(arg: c_uint, op: Op, x: u64) -> Compare {
-        Compare { arg: arg, op: op, datum_a: x, datum_b: 0 }
+        Compare { arg: arg, op: unsafe { transmute(op) }, datum_a: x, datum_b: 0 }
     }
 
     pub fn new_masked_eq(arg: c_uint, mask: u64, x: u64) -> Compare {

@@ -1,4 +1,5 @@
-use std::libc::c_int;
+extern crate libc;
+use libc::c_int;
 pub static READ: c_int = 0;
 pub static WRITE: c_int = 1;
 pub static OPEN: c_int = 2;
@@ -313,3 +314,5 @@ pub static PROCESS_VM_READV: c_int = 310;
 pub static PROCESS_VM_WRITEV: c_int = 311;
 pub static KCMP: c_int = 312;
 pub static FINIT_MODULE: c_int = 313;
+pub static SCHED_SETATTR: c_int = 314;
+pub static SCHED_GETATTR: c_int = 315;
