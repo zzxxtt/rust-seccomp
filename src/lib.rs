@@ -1,11 +1,12 @@
-#![crate_id = "seccomp"]
-#![crate_type = "lib"]
+#![allow(unstable)]
 #![allow(non_camel_case_types)] // C definitions
 
 extern crate libc;
 
 use libc::{c_char, c_int, c_uint};
-use std::cast::transmute;
+use std::mem::transmute;
+use std::ffi::CString;
+pub use syscall::Syscall;
 
 #[cfg(target_arch = "x86_64")]
 #[path = "syscall64.rs"]
@@ -20,6 +21,7 @@ enum scmp_filter_ctx {}
 static __NR_SCMP_ERROR: c_int = -1;
 
 #[repr(C)]
+#[derive(Copy)]
 pub enum scmp_compare {
     _SCMP_CMP_MIN = 0,
     SCMP_CMP_NE = 1,
@@ -33,6 +35,7 @@ pub enum scmp_compare {
 }
 
 #[repr(C)]
+#[derive(Copy)]
 pub enum Op {
     OpNe = 1,
     OpLt = 2,
@@ -44,6 +47,8 @@ pub enum Op {
 
 type scmp_datum_t = u64;
 
+#[derive(Copy)]
+#[repr(C)]
 pub struct Compare {
     arg: c_uint,
     op: scmp_compare,
@@ -57,35 +62,35 @@ impl Compare {
     }
 
     pub fn new_masked_eq(arg: c_uint, mask: u64, x: u64) -> Compare {
-        Compare { arg: arg, op: SCMP_CMP_MASKED_EQ, datum_a: mask, datum_b: x }
+        Compare { arg: arg, op: scmp_compare::SCMP_CMP_MASKED_EQ, datum_a: mask, datum_b: x }
     }
 }
 
 #[link(name = "seccomp")]
-extern {
+extern "C" {
     fn seccomp_init(def_action: u32) -> *mut scmp_filter_ctx;
     fn seccomp_reset(ctx: *mut scmp_filter_ctx, def_action: u32) -> c_int;
     fn seccomp_release(ctx: *mut scmp_filter_ctx);
     fn seccomp_load(ctx: *mut scmp_filter_ctx) -> c_int;
-    fn seccomp_rule_add_array(ctx: *mut scmp_filter_ctx, action: u32, syscall: c_int,
-                              arg_cnt: c_uint, arg_array: *Compare) -> c_int;
-    fn seccomp_syscall_resolve_name(name: *c_char) -> c_int;
+    fn seccomp_rule_add_array(ctx: *mut scmp_filter_ctx, action: u32, syscall: u32,
+                              arg_cnt: c_uint, arg_array: *const Compare) -> c_int;
+    fn seccomp_syscall_resolve_name(name: *const c_char) -> c_int;
 }
 
 pub fn syscall_resolve_name(name: &str) -> Option<c_int> {
     unsafe {
-        name.with_c_str(|s| {
-            let r = seccomp_syscall_resolve_name(s);
-            if r == __NR_SCMP_ERROR {
-                None
-            } else {
-                Some(r)
-            }
-        })
+        let buf = CString::from_slice(name.as_bytes());
+        let r = seccomp_syscall_resolve_name(buf.as_ptr());
+        if r == __NR_SCMP_ERROR {
+            None
+        } else {
+            Some(r)
+        }
     }
 }
 
 /// Default action to take when the ruleset is violated
+#[derive(Copy)]
 pub struct Action {
     flag: u32
 }
@@ -114,10 +119,10 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn new(def_action: Action) -> Filter {
+    pub fn new(def_action: &Action) -> Filter {
         unsafe {
             let p = seccomp_init(def_action.flag);
-            assert!(p.is_not_null());
+            assert!(!p.is_null());
             Filter{ctx: p}
         }
     }
@@ -135,12 +140,12 @@ impl Filter {
         }
     }
 
-    pub fn rule_add(&self, action: Action, syscall: c_int, args: &[Compare]) {
-        let len = args.len() as c_uint;
-        assert!(len as uint == args.len()); // overflow check
+    pub fn rule_add(&self, action: &Action, syscall: Syscall, args: &[Compare]) -> i32 {
+        let len = args.len() as usize;
+        assert!(len == args.len()); // overflow check
         let ptr = args.as_ptr();
         unsafe {
-            assert!(seccomp_rule_add_array(self.ctx, action.flag, syscall, len, ptr) == 0);
+            seccomp_rule_add_array(self.ctx, action.flag, syscall as u32, len as u32, ptr)
         }
     }
 }
