@@ -13,27 +13,28 @@ fn start(_argc: isize, _argv: *const *const u8) -> isize {
     let errstr = b"output for stderr\n";
 
     // set killing the process as the default handler, as we want a whitelist
-    let filter = Filter::new(&ACT_KILL);
+    let filter = Filter::new(&ACT_KILL).ok().expect("Could not allocate new filter");
 
     // allow `write(1, outstr.as_ptr(), outstr.len())`
     filter.rule_add(&ACT_ALLOW, Syscall::WRITE, &[
         Compare::new(0, OpEq, 1),
         Compare::new(1, OpEq, outstr.as_ptr() as u64),
         Compare::new(2, OpEq, outstr.len() as u64)
-    ]);
+    ]).ok().expect("Could not add stdout rule");
 
     // allow `write(2, errstr.as_ptr(), errstr.len())`
     filter.rule_add(&ACT_ALLOW, Syscall::WRITE, &[
         Compare::new(0, OpEq, 2),
         Compare::new(1, OpEq, errstr.as_ptr() as u64),
         Compare::new(2, OpEq, errstr.len() as u64)
-    ]);
+    ]).ok().expect("Could not add stderr rule");
 
     // allow `exit_group(0)`
-    filter.rule_add(&ACT_ALLOW, Syscall::EXIT_GROUP, &[Compare::new(0, OpEq, 0)]);
+    filter.rule_add(&ACT_ALLOW, Syscall::EXIT_GROUP, &[Compare::new(0, OpEq, 0)])
+        .ok().expect("Could not add exit_group rule");
 
     // activate the filtering rules
-    filter.load();
+    filter.load().ok().expect("Could not load filter");
 
     unsafe {
         libc::write(1, outstr.as_ptr() as *const c_void, outstr.len() as size_t);

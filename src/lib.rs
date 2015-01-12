@@ -6,6 +6,7 @@ extern crate libc;
 use libc::{c_char, c_int, c_uint};
 use std::mem::transmute;
 use std::ffi::CString;
+use std::os;
 pub use syscall::Syscall;
 
 #[cfg(target_arch = "x86_64")]
@@ -119,33 +120,55 @@ pub struct Filter {
 }
 
 impl Filter {
-    pub fn new(def_action: &Action) -> Filter {
+    pub fn new(def_action: &Action) -> Result<Filter, usize> {
+        let p;
         unsafe {
-            let p = seccomp_init(def_action.flag);
-            assert!(!p.is_null());
-            Filter{ctx: p}
+            p = seccomp_init(def_action.flag);
+        }
+        if p.is_null() {
+            Result::Err(os::errno())
+        } else {
+            Result::Ok(Filter{ctx: p})
         }
     }
 
-    pub fn reset(&self, def_action: Action) {
+    pub fn reset(&self, def_action: Action) -> Result<(), usize> {
+        let r;
         unsafe {
-            assert!(seccomp_reset(self.ctx, def_action.flag) == 0)
+            r = seccomp_reset(self.ctx, def_action.flag);
+        }
+        if r == 0 {
+            Result::Ok(())
+        } else {
+            Result::Err(os::errno())
         }
     }
 
     /// Loads the filter into the kernel
-    pub fn load(&self) {
+    pub fn load(&self) -> Result<(), usize> {
+        let r;
         unsafe {
-            assert!(seccomp_load(self.ctx) == 0)
+            r = seccomp_load(self.ctx);
+        }
+        if r == 0 {
+            Result::Ok(())
+        } else {
+            Result::Err(os::errno())
         }
     }
 
-    pub fn rule_add(&self, action: &Action, syscall: Syscall, args: &[Compare]) -> i32 {
+    pub fn rule_add(&self, action: &Action, syscall: Syscall, args: &[Compare]) -> Result<(), usize> {
         let len = args.len() as usize;
         assert!(len == args.len()); // overflow check
         let ptr = args.as_ptr();
+        let r;
         unsafe {
-            seccomp_rule_add_array(self.ctx, action.flag, syscall as u32, len as u32, ptr)
+            r = seccomp_rule_add_array(self.ctx, action.flag, syscall as u32, len as u32, ptr)
+        }
+        if r == 0 {
+            Result::Ok(())
+        } else {
+            Result::Err(os::errno())
         }
     }
 }
