@@ -1,4 +1,4 @@
 [package]
-name = "rust-seccomp"
+name = "seccomp"
 version = "0.0.1"
 authors = ["Daniel Micay <danielmicay@gmail.com>", "Torrie Fischer <torrie@ripple.com>"]
