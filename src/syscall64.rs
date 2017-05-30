@@ -1,4 +1,4 @@
-#[derive(Show, FromPrimitive, Copy)]
+#[derive(Clone,Copy)]
 pub enum Syscall {
   READ = 0,
   WRITE = 1,

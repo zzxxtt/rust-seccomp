@@ -1,4 +1,8 @@
 [package]
 name = "seccomp"
-version = "0.0.1"
-authors = ["Daniel Micay <danielmicay@gmail.com>", "Torrie Fischer <torrie@ripple.com>"]
+version = "1.0.0"
+authors = ["zxt <zhaoxiting1997@gmail.com>"]
+
+[dependencies]
+
+libc = "0.2.21"

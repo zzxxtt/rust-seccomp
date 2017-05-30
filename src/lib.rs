@@ -1,4 +1,4 @@
-#![allow(unstable)]
+
 #![allow(non_camel_case_types)] // C definitions
 
 extern crate libc;
@@ -6,7 +6,6 @@ extern crate libc;
 use libc::{c_char, c_int, c_uint};
 use std::mem::transmute;
 use std::ffi::CString;
-use std::os;
 pub use syscall::Syscall;
 
 #[cfg(target_arch = "x86_64")]
@@ -22,7 +21,7 @@ enum scmp_filter_ctx {}
 static __NR_SCMP_ERROR: c_int = -1;
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy,Clone)]
 pub enum scmp_compare {
     _SCMP_CMP_MIN = 0,
     SCMP_CMP_NE = 1,
@@ -36,7 +35,7 @@ pub enum scmp_compare {
 }
 
 #[repr(C)]
-#[derive(Copy)]
+#[derive(Copy,Clone)]
 pub enum Op {
     OpNe = 1,
     OpLt = 2,
@@ -48,7 +47,7 @@ pub enum Op {
 
 type scmp_datum_t = u64;
 
-#[derive(Copy)]
+#[derive(Copy,Clone)]
 #[repr(C)]
 pub struct Compare {
     arg: c_uint,
@@ -80,7 +79,7 @@ extern "C" {
 
 pub fn syscall_resolve_name(name: &str) -> Option<c_int> {
     unsafe {
-        let buf = CString::from_slice(name.as_bytes());
+        let buf = CString::new(name.as_bytes()).unwrap();
         let r = seccomp_syscall_resolve_name(buf.as_ptr());
         if r == __NR_SCMP_ERROR {
             None
@@ -91,7 +90,7 @@ pub fn syscall_resolve_name(name: &str) -> Option<c_int> {
 }
 
 /// Default action to take when the ruleset is violated
-#[derive(Copy)]
+#[derive(Copy,Clone)]
 pub struct Action {
     flag: u32
 }
@@ -126,7 +125,7 @@ impl Filter {
             p = seccomp_init(def_action.flag);
         }
         if p.is_null() {
-            Result::Err(os::errno())
+            Result::Err(1)
         } else {
             Result::Ok(Filter{ctx: p})
         }
@@ -140,7 +139,7 @@ impl Filter {
         if r == 0 {
             Result::Ok(())
         } else {
-            Result::Err(os::errno())
+            Result::Err(1)
         }
     }
 
@@ -153,7 +152,7 @@ impl Filter {
         if r == 0 {
             Result::Ok(())
         } else {
-            Result::Err(os::errno())
+            Result::Err(1)
         }
     }
 
@@ -168,7 +167,7 @@ impl Filter {
         if r == 0 {
             Result::Ok(())
         } else {
-            Result::Err(os::errno())
+            Result::Err(1)
         }
     }
 }
